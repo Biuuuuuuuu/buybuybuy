@@ -1,1 +1,11 @@
-<RCC/>
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>capitalism.png</file>
+        <file>capitalism1.png</file>
+        <file>czyh(1).jpg</file>
+        <file>icon.png</file>
+        <file>banner1.png</file>
+        <file>banner2.png</file>
+        <file>banner3.png</file>
+    </qresource>
+</RCC>

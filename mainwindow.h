@@ -2,6 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QtGui>
+#include <QGridLayout>
+#include "bankaccount.h"
 
 namespace Ui {
 class MainWindow;
@@ -17,6 +20,9 @@ public:
 
 private:
     Ui::MainWindow *ui;
+private slots:
+    void on_signUpB_clicked();
+    void on_loginB_clicked();
 };
 
 #endif // MAINWINDOW_H
