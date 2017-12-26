@@ -2,6 +2,10 @@
 #include "ui_mainwindow.h"
 #include "signupdialog.h"
 #include "logindialog.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/document.h"
+
+using namespace rapidjson;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -20,6 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::newConnect(){
+    qDebug()<<"new connect";
     QTcpSocket* soc=server->nextPendingConnection();
     if(!soc)return;
     pool.append(soc);
@@ -31,24 +36,75 @@ void MainWindow::serverAnswer(){
     QTcpSocket* soc=qobject_cast<QTcpSocket*>(sender());
     if(!soc)return;
     QByteArray msg=soc->readAll();
-    if(msg=="banks"){
+    qDebug()<<msg;
+    if(msg=="banks"){//bank list reuqest
         QString ans("[");
         QSqlDatabase db=QSqlDatabase::database();
-        QSqlQuery q;
-        q.prepare("select ID,name from banks");
-        if(db.open()&&q.exec()){
-            while(q.next()){
-                int bankID=q.value(0).toInt();
-                QString name=q.value(1).toString();
-                ans.append(QString("{\"bankID\":%1,"
-                                   "\"name\":\"%2\"},")
-                           .arg(bankID).arg(name));
+        if(db.open()){
+            QSqlQuery q;
+            q.prepare("select ID,name from banks");
+            if(q.exec()){
+                while(q.next()){
+                    int bankID=q.value(0).toInt();
+                    QString name=q.value(1).toString();
+                    ans.append(QString("{\"bankID\":%1,"
+                                       "\"name\":\"%2\"},")
+                               .arg(bankID).arg(name));
+                }
             }
-            if(ans.size()>1)ans[ans.size()-1]=']';
-            else ans.append("]");
         }
+        if(ans.size()>1)ans[ans.size()-1]=']';
+        else ans.append("]");
         soc->write(ans.toUtf8());
+        qDebug()<<("ans: "+ans);
         soc->close();
+    }
+    else{//password check request
+        Document d;
+        if(d.Parse(msg.data()).HasParseError()){
+            soc->write("x");
+            qDebug()<<"x";
+            soc->close();
+            return;
+        }
+        QString accountID=QString::fromUtf8(d["accountID"].GetString());
+        int bankID=d["bankID"].GetInt();
+        QString pw=QString::fromUtf8(d["pw"].GetString());
+        QSqlDatabase db=QSqlDatabase::database();
+        if(!db.open()){
+            soc->write("d");
+            QMessageBox::information(this,"对客户服务报告错误"
+                ,"对客户服务报告错误:无法连接到数据库");
+            soc->close();
+            return;
+        }
+        QSqlQuery q;
+        q.prepare("select ID from accounts "
+                  "where accountID=? "
+                  "and bankID=? "
+                  "and pw=?");
+        q.addBindValue(accountID);
+        q.addBindValue(bankID);
+        q.addBindValue(pw);
+        if(!q.exec()){
+            soc->write("d");
+            QMessageBox::information(this,"对客户服务报告错误"
+                ,"对客户服务报告错误:无法查询数据库");
+            soc->close();
+            return;
+        }
+        if(q.next()){
+            soc->write("1");
+            qDebug()<<"1";
+            soc->close();
+            return;
+        }
+        else{
+            soc->write("0");
+            qDebug()<<"0";
+            soc->close();
+            return;
+        }
     }
 }
 
