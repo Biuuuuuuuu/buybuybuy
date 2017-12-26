@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QtGui>
+#include <QtNetwork>
 #include <QGridLayout>
 #include "bankaccount.h"
 
@@ -20,9 +21,13 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    QTcpServer *server;
+    QList<QTcpSocket*> pool;
 private slots:
     void on_signUpB_clicked();
     void on_loginB_clicked();
+    void newConnect();
+    void serverAnswer();
 };
 
 #endif // MAINWINDOW_H
