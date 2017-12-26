@@ -1,0 +1,19 @@
+encode:utf8
+(1)
+	shop client request : "banks"
+	answer string: [{"bankID":(int),"name":(str)}..]
+(2)
+	shop client request string:{"bankID":(int),"accountID":(str),"pw":(str)}
+	answer : "0" or "1" or "x" or "d"
+	0 = wrong pw or id
+	1 = correct pw
+	x = bad message
+	d = bank server database failure
+(3)	
+	shop client request string:{"bankID":(int),"accountID":(str),"pw":(str),"pay":(real)}
+	answer : "0" or "1" or "x" or "d" or "$"
+	0 = wrong pw or id
+	1 = correct pw and successful payment
+	$ = no enough money
+	x = bad message
+	d = bank server database failure
