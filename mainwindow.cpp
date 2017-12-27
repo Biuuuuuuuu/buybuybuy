@@ -59,7 +59,7 @@ void MainWindow::serverAnswer(){
         qDebug()<<("ans: "+ans);
         soc->close();
     }
-    else{//password check request
+    else{//password check/payment request
         Document d;
         if(d.Parse(msg.data()).HasParseError()){
             soc->write("x");
@@ -79,7 +79,7 @@ void MainWindow::serverAnswer(){
             return;
         }
         QSqlQuery q;
-        q.prepare("select ID from accounts "
+        q.prepare("select money from accounts "
                   "where accountID=? "
                   "and bankID=? "
                   "and pw=?");
@@ -93,15 +93,51 @@ void MainWindow::serverAnswer(){
             soc->close();
             return;
         }
-        if(q.next()){
-            soc->write("1");
-            qDebug()<<"1";
-            soc->close();
-            return;
+        if(q.next()){//密码正确
+            if(d.HasMember("pay")){
+                double money=q.value(0).toDouble();
+                double pay=d["pay"].GetDouble();
+                money-=pay;
+                if(money>=0){
+                    q.prepare("update accounts set money=? "
+                              "where accountID=? "
+                              "and bankID=? "
+                              "and pw=?");
+                    q.addBindValue(money);
+                    q.addBindValue(accountID);
+                    q.addBindValue(bankID);
+                    q.addBindValue(pw);
+                    if(q.exec()){
+                        soc->write("1");
+                        qDebug()<<"payment complete";
+                        soc->close();
+                        return;
+                    }
+                    else{
+                        soc->write("d");
+                        QMessageBox::information(this,"对客户服务报告错误"
+                            ,"对客户服务报告错误:支付失败，无法更新数据库");
+                        soc->close();
+                        return;
+                    }
+                }
+                else{
+                    soc->write("$");
+                    qDebug()<<"no enough money";
+                    soc->close();
+                    return;
+                }
+            }
+            else{
+                soc->write("1");
+                qDebug()<<"pw correct";
+                soc->close();
+                return;
+            }
         }
         else{
             soc->write("0");
-            qDebug()<<"0";
+            qDebug()<<"wrong pw";
             soc->close();
             return;
         }
